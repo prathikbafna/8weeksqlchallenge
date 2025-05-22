@@ -51,5 +51,31 @@ group by 1;
 
 
 -- What was the difference between the longest and shortest delivery times for all orders?
+
+use pizza_runner;
+
+select  max(substring_index(duration, 'min',1)*1) - min(substring_index(duration, 'min',1)*1) as difference_duration_minutes
+from runner_orders
+where duration is not null and duration <> 'null';
+
+
 -- What was the average speed for each runner for each delivery and do you notice any trend for these values?
+
+use pizza_runner;
+
+select runner_id, avg((substring_index(distance,'km',1)*1)/(substring_index(duration,'min',1)*1)) as avg_km_per_min
+from runner_orders
+where distance is not null and distance <> 'null' and duration is not null and duration <> 'null'
+group by 1;
+
 -- What is the successful delivery percentage for each runner?
+
+with temp as (
+select runner_id,
+sum(case when distance is not null and distance <> 'null' then 1 else 0 end) as success, 
+sum(case when distance is null or distance = 'null' then 1 else 0 end) as failed
+from runner_orders
+group by runner_id )
+
+select runner_id, success/(success+failed) as delivery_percentage
+from temp;
