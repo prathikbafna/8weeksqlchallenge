@@ -113,7 +113,7 @@ extras_details AS (
     WHERE rest != ''
 ),
 detailed_names as (
-select e.order_id, e.pizza_name, concat(e.pizza_name, ' - Exclude ',group_concat(p.topping_name order by p.topping_name separator ', ')) as items
+select e.order_id, e.pizza_name, concat( ' - Exclude ',group_concat(p.topping_name order by p.topping_name separator ', ')) as items
 from excluded_details e 
 join pizza_toppings p on e.item = p.topping_id
 where item is not null and item <> 'null' and item <> ''
@@ -125,18 +125,51 @@ select e.order_id, e.pizza_name, concat('- Extra ',group_concat(p.topping_name o
 from extras_details e 
 join pizza_toppings p on e.item = p.topping_id
 where item is not null and item <> 'null' and item <> ''
-group by 1,2)
+group by 1,2),
 
-select group_concat(items order by items separator ' ')  as order_details
+final_format as (
+select order_id, pizza_name, group_concat(items order by items separator ' ')  as order_details
 from detailed_names
-group by order_id, pizza_name;
+group by order_id, pizza_name )
 
+select concat(pizza_name, ' ', order_details) as pizza_details
+from final_format;
 
--- select * from detailed_names;
 
 
 -- Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients
 -- For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 
+use pizza_runner;
+
+with recursive pizza_ingridients as (
+    
+    select 
+		pizza_id,
+		substring_index(toppings,',',1) as item,
+		substring(toppings, length(substring_index(toppings,',',1) + 2 )) as rest
+	from pizza_recipes
+
+	union all
+
+	select
+		pizza_id,
+		substring_index(rest,',',1),
+        SUBSTRING(rest, LENGTH(SUBSTRING_INDEX(rest, ',', 1)) + 2)
+	from pizza_ingridients
+	where rest <> ''
+    
+),
+pizza_recipe_transformed as (
+select distinct pizza_id, item from pizza_ingridients
+)
+
+select * from pizza_recipe_transformed;
+
+
 
 -- What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
+use pizza_runner;
+
+
+
