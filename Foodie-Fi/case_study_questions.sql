@@ -106,5 +106,55 @@ where next_plan is not null and next_plan = 3;
 
 -- Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
 
+use foodie_fi;
+
+with temp as (
+select *, rank() over(partition by customer_id order by start_date) as rk
+from subscriptions 
+),
+
+temp2 as (
+select * from temp
+where rk = 1 or plan_id = 3),
+
+temp3 as (
+select *, 
+lead(plan_id) over(partition by customer_id order by rk) as next_plan, 
+lead(start_date) over(partition by customer_id order by rk) as next_start_date   
+from temp2
+)
+
+select round(datediff(next_start_date,start_date)/30,0) as blocks,
+avg(datediff(next_start_date,start_date)) as days_to_convert
+from temp3
+where next_plan = 3
+group by blocks
+order by blocks;
+
 
 -- How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
+
+-- plan_id downgrade from 2 --> 1 
+with temp as (
+select *, rank() over(partition by customer_id order by start_date) as rk
+from subscriptions 
+),
+
+temp2 as (
+select * from temp
+where plan_id = 2 or plan_id = 1),
+
+temp3 as (
+select *, 
+lead(plan_id) over(partition by customer_id order by rk) as next_plan, 
+lead(start_date) over(partition by customer_id order by rk) as next_start_date   
+from temp2
+)
+
+
+select * from temp3
+where plan_id = 2 and next_plan = 1;
+
+# None
+
+
